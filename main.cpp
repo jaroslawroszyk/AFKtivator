@@ -3,35 +3,64 @@
 #include <iostream>
 #include <unistd.h>
 
+std::pair<int, int> getMouseClickPoint()
+{
+    Display* display = XOpenDisplay(nullptr);
+    XEvent event{};
+    Window rootWindow = DefaultRootWindow(display);
+
+    XGrabPointer(display, rootWindow, False, ButtonPressMask, GrabModeAsync, GrabModeAsync, None, None, CurrentTime);
+    XSelectInput(display, rootWindow, ButtonPressMask);
+
+    while (true)
+    {
+        XNextEvent(display, &event);
+
+        if (event.type == ButtonPress)
+        {
+            if (event.xbutton.button == Button1)
+            {
+                int x = event.xbutton.x;
+                int y = event.xbutton.y;
+
+                std::cout << "You have set points in: x = " << x << ", y = " << y << std::endl;
+                XCloseDisplay(display);
+                return { x, y };
+            }
+        }
+    }
+
+    XCloseDisplay(display);
+    return { 0,0 };
+}
+
 void performMouseClick(int x, int y)
 {
     Display* display = XOpenDisplay(nullptr);
-    if (display == nullptr)
+
+    while (true)
     {
-        std::cerr << "Nie można otworzyć wyświetlacza X11\n";
-        return;
+        sleep(5);
+        XTestFakeMotionEvent(display, -1, x, y, 0);
+        XTestFakeButtonEvent(display, 1, true, 0);
+        XFlush(display);
+        XTestFakeButtonEvent(display, 1, false, 0);
+        XFlush(display);
     }
-    sleep(2);
-    XTestFakeMotionEvent(display, -1, x, y, 0);
-    XTestFakeButtonEvent(display, 1, true, 0);
-    XFlush(display);
-    XTestFakeButtonEvent(display, 1, false, 0);
-    XFlush(display);
 
     XCloseDisplay(display);
 }
 
 int main()
 {
-    int targetX = 180, targetY = 77;
-    // std::cout << "Podaj współrzędną X: ";
-    // std::cin >> targetX;
-    // std::cout << "Podaj współrzędną Y: ";
-    // std::cin >> targetY;
+    const auto& clickPoint = getMouseClickPoint();
+    if (clickPoint.first == 0 && clickPoint.second == 0)
+    {
+        std::cerr << "Unable to read mouse click point\n";
+        return 1;
+    }
 
-    while (true)
-        performMouseClick(targetX, targetY);
+    performMouseClick(clickPoint.first, clickPoint.second);
 
     return 0;
 }
-
