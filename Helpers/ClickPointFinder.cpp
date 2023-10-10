@@ -5,12 +5,6 @@ int main()
 {
     Display* display = XOpenDisplay(NULL);
 
-    // if (display == NULL)
-        // {
-        //     std::cout << "Cant open window." << std::endl;
-        //     return 1;
-        // }
-
     XEvent event;
     Window rootWindow = DefaultRootWindow(display);
 

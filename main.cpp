@@ -3,6 +3,12 @@
 #include <iostream>
 #include <unistd.h>
 
+struct Point
+{
+  int x{};
+  int y{};
+};
+
 class MouseClicker
 {
 private:
@@ -11,13 +17,12 @@ public:
     MouseClicker();
     ~MouseClicker();
 
-    std::pair<int, int> getMouseClickPoint();
-    void performMouseClick(int x, int y);
+    auto getMouseClickPoint() -> Point;
+    auto performMouseClick(const Point&) -> void;
 };
 
 MouseClicker::MouseClicker() : display(XOpenDisplay(nullptr))
 {
-    // display = XOpenDisplay(nullptr);
     if (display == nullptr)
     {
         std::cerr << "The X11 display cannot be opened\n";
@@ -33,8 +38,9 @@ MouseClicker::~MouseClicker()
     }
 }
 
-std::pair<int, int> MouseClicker::getMouseClickPoint()
+auto MouseClicker::getMouseClickPoint() -> Point
 {
+    Point point{0,0};
     XEvent event;
     Window rootWindow = DefaultRootWindow(display);
 
@@ -49,15 +55,15 @@ std::pair<int, int> MouseClicker::getMouseClickPoint()
         {
             if (event.xbutton.button == Button1)
             {
-                int x = event.xbutton.x;
-                int y = event.xbutton.y;
+                point.x = event.xbutton.x;
+                point.y = event.xbutton.y;
 
-                std::cout << "Clicking on a point x = " << x << ", y = " << y << std::endl;
+                std::cout << "Clicking on a point: { x, y }= " << point.x << ", y = " << point.y << std::endl;
 
                 XUngrabPointer(display, CurrentTime);
                 XFlush(display);
 
-                return { x, y };
+                return point;
             }
         }
     }
@@ -65,31 +71,32 @@ std::pair<int, int> MouseClicker::getMouseClickPoint()
     return {};
 }
 
-void MouseClicker::performMouseClick(int x, int y)
+
+auto MouseClicker::performMouseClick(const Point& point) -> void
 {
-    while (true)
+  while (true)
     {
-        sleep(4);
-        XTestFakeMotionEvent(display, -1, x, y, 0);
-        XTestFakeButtonEvent(display, 1, true, 0);
-        XFlush(display);
-        XTestFakeButtonEvent(display, 1, false, 0);
-        XFlush(display);
-        std::cout << "Clicking on a point x = " << x << ", y = " << y << std::endl;
-    }
+    sleep(4);
+    XTestFakeMotionEvent(display, -1, point.x, point.y, 0);
+    XTestFakeButtonEvent(display, 1, true, 0);
+    XFlush(display);
+    XTestFakeButtonEvent(display, 1, false, 0);
+    XFlush(display);
+    std::cout << "Clicking on a point x = " << point.x << ", y = " << point.y << std::endl;
+  }
 }
 
-int main()
+auto main() -> int
 {
     MouseClicker clicker;
-    std::pair<int, int> clickPoint = clicker.getMouseClickPoint();
-    if (clickPoint.first == 0 && clickPoint.second == 0)
+    auto clickPoint = clicker.getMouseClickPoint();
+    if (clickPoint.x == 0 && clickPoint.y == 0)
     {
-        std::cerr << "Unable to read mouse click pointn";
+        std::cerr << "Unable to read mouse click point! \n";
         return 1;
     }
 
-    clicker.performMouseClick(clickPoint.first, clickPoint.second);
+    clicker.performMouseClick(clickPoint);
 
     return 0;
 }
